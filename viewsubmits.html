@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>View Submissions</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <a href="#" id="backButton" onclick="history.back();">Back</a>
+
+    <div class="container">
+        <h2>Submitted Homework</h2>
+        <div id="submittedContainer"></div>
+    </div>
+
+    <!-- Dark Mode Toggle Button -->
+    <div id="darkModeToggle">Toggle Dark Mode</div>
+
+    <script>
+        // Dark mode logic
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const body = document.body;
+
+        // Check if dark mode is saved in localStorage
+        if (localStorage.getItem('darkMode') === 'enabled') {
+            body.classList.add('dark-mode');
+        }
+
+        darkModeToggle.addEventListener('click', () => {
+            body.classList.toggle('dark-mode');
+            if (body.classList.contains('dark-mode')) {
+                localStorage.setItem('darkMode', 'enabled');
+            } else {
+                localStorage.removeItem('darkMode');
+            }
+        });
+
+        // Function to get task text by taskId
+        function getTaskTextById(taskId) {
+            const tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+            const task = tasks.find(task => task.id === taskId);
+            return task ? task.text : 'Task not found';
+        }
+
+        // Check user role and load submitted homework only for teachers
+        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+
+        if (currentUser && currentUser.role === 'teacher') {
+            const submittedHomework = JSON.parse(localStorage.getItem('submittedHomework')) || {};
+            const submittedContainer = document.getElementById('submittedContainer');
+
+            for (const email in submittedHomework) {
+                for (const taskId in submittedHomework[email]) {
+                    const homework = submittedHomework[email][taskId];
+
+                    // Check if homework status is 'submitted'
+                    if (homework.status === 'submitted') {
+                        const submissionTime = new Date(homework.submissionTime).toLocaleString(); // Format the submission time
+                        const homeworkElement = document.createElement('div');
+                        homeworkElement.innerHTML = `
+                            <p><strong>Email:</strong> ${email}</p>
+                            <p><strong>Task:</strong> ${getTaskTextById(taskId)}</p>
+                            <p><strong>Description:</strong> ${homework.description}</p>
+                            <p><strong>Submitted On:</strong> ${submissionTime}</p>
+                            <a href="${homework.fileData}" download="${homework.fileName}" class="general-button">Download File</a>
+                            <button class="accept-button" onclick="acceptHomework('${email}', '${taskId}')">Accept</button>
+                            <button class="reject-button" onclick="rejectHomework('${email}', '${taskId}')">Reject</button>
+                        `;
+                        submittedContainer.appendChild(homeworkElement);
+                    }
+                }
+            }
+
+            function acceptHomework(email, taskId) {
+                let submittedHomework = JSON.parse(localStorage.getItem('submittedHomework'));
+                submittedHomework[email][taskId].status = 'accepted';
+                localStorage.setItem('submittedHomework', JSON.stringify(submittedHomework));
+                location.reload();
+            }
+
+            function rejectHomework(email, taskId) {
+                let submittedHomework = JSON.parse(localStorage.getItem('submittedHomework'));
+                submittedHomework[email][taskId].status = 'rejected';
+                localStorage.setItem('submittedHomework', JSON.stringify(submittedHomework));
+                location.reload();
+            }
+        } else {
+            alert('You do not have permission to view this page.');
+            window.location.href = 'dashboard.html'; // Redirect non-teachers to dashboard
+        }
+    </script>
+</body>
+</html>

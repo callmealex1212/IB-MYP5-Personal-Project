@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit Homework</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Back Button -->
+    <a href="#" id="backButton" onclick="history.back();">Back</a>
+
+    <div class="container">
+        <h2>Submit Homework</h2>
+        <form id="homeworkForm">
+            <input type="text" id="homeworkDescription" placeholder="Homework description" required>
+            <input type="file" id="homeworkFile" required>
+            <button type="submit">Submit Homework</button>
+        </form>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const taskIndex = urlParams.get('task'); // This is a string
+        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+
+        document.getElementById('homeworkForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const description = document.getElementById('homeworkDescription').value.trim();
+            const fileInput = document.getElementById('homeworkFile');
+            const file = fileInput.files[0];
+
+            if (!description || !file) {
+                alert('Please provide both description and file.');
+                return;
+            }
+
+            // Get the current date and time
+            const submissionTimestamp = new Date().toISOString();
+
+            // Read the file as base64 data to store it in localStorage
+            const reader = new FileReader();
+            reader.onloadend = function () {
+                const fileData = reader.result;
+
+                let submittedHomework = JSON.parse(localStorage.getItem('submittedHomework')) || {};
+
+                if (!submittedHomework[currentUser.email]) {
+                    submittedHomework[currentUser.email] = {};
+                }
+
+                const taskKey = taskIndex.toString();
+
+                // Save homework submission data with the timestamp
+                submittedHomework[currentUser.email][taskKey] = {
+                    description,
+                    fileName: file.name,
+                    fileData: fileData,  // Store the base64 encoded file data
+                    status: 'submitted',
+                    submissionTime: submissionTimestamp // Store submission time
+                };
+
+                localStorage.setItem('submittedHomework', JSON.stringify(submittedHomework));
+
+                alert('Homework submitted successfully!');
+                window.location.href = 'tasks.html';
+            };
+
+            reader.readAsDataURL(file); // Read the file
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tasks</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Back Button -->
+    <a href="#" id="backButton" onclick="history.back();">Back</a>
+
+    <div class="container">
+        <h2>Tasks</h2>
+        <p id="userInfo"></p>
+        <button class="general-button" id="logoutButton">Log Out</button>
+        <div id="tasksContainer"></div>
+        
+        <!-- Only show this form if the user is a teacher -->
+        <form id="taskForm" style="display:none;">
+            <input type="text" id="taskText" placeholder="Enter new task" required>
+            <label for="taskDeadline">Select Deadline:</label>
+            <input type="date" id="taskDeadline" required>
+            <button class="general-button" type="submit">Add Task</button>
+        </form>
+    </div>
+
+    <!-- Dark Mode Toggle Button -->
+    <div id="darkModeToggle">Toggle Dark Mode</div>
+
+    <script src="script.js"></script>
+    <script>
+        // Show the current user's email
+        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+        if (currentUser) {
+            document.getElementById('userInfo').textContent = `Logged in as: ${currentUser.email}`;
+            // Show the task form only for teachers
+            if (currentUser.role === 'teacher') {
+                document.getElementById('taskForm').style.display = 'block';
+                loadTasksForTeacher(); // Load tasks for teacher
+            } else {
+                loadTasksForStudent(currentUser.email); // Load tasks for student
+            }
+        } else {
+            window.location.href = 'login.html'; // Redirect to login if no user is logged in
+        }
+
+        // Load tasks for teachers
+        function loadTasksForTeacher() {
+            const tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+            const tasksContainer = document.getElementById('tasksContainer');
+            tasksContainer.innerHTML = ''; // Clear the container
+
+            // Display tasks
+            tasks.forEach(task => {
+                const taskElement = document.createElement('div');
+                taskElement.classList.add('task-item');
+
+                // Format the timestamp to a readable date and time
+                const formattedDate = new Date(task.timestamp).toLocaleString();
+                const deadlineDate = new Date(task.deadline).toLocaleDateString();
+
+                taskElement.innerHTML = `
+                    <p><strong>Task:</strong> ${task.text}</p>
+                    <p class="published-on"><strong>Published On:</strong> ${formattedDate}</p>
+                    <p class="published-on"><strong>Deadline:</strong> ${deadlineDate}</p>
+                `;
+
+                const taskId = task.id;
+
+                // Add delete and update buttons for teacher
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Delete';
+                deleteButton.className = 'delete-button';
+                deleteButton.onclick = function() {
+                    deleteTask(taskId); // Use taskId
+                };
+
+                const updateButton = document.createElement('button');
+                updateButton.textContent = 'Update';
+                updateButton.className = 'update-button';
+                updateButton.onclick = function() {
+                    updateTask(taskId); // Use taskId
+                };
+
+                taskElement.appendChild(deleteButton);
+                taskElement.appendChild(updateButton);
+                tasksContainer.appendChild(taskElement);
+            });
+
+            // If no tasks exist, display a message
+            if (tasks.length === 0) {
+                tasksContainer.innerHTML = '<p>No tasks available</p>';
+            }
+        }
+
+        // Load tasks for students
+        function loadTasksForStudent(email) {
+            const tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+            const submittedHomework = JSON.parse(localStorage.getItem('submittedHomework')) || {};
+            const tasksContainer = document.getElementById('tasksContainer');
+            tasksContainer.innerHTML = '';  // Clear the container
+
+            tasks.forEach(task => {
+                const taskElement = document.createElement('div');
+                taskElement.classList.add('task-item');
+
+                // Format the timestamp and deadline to readable formats
+                const formattedDate = new Date(task.timestamp).toLocaleString();
+                const deadlineDate = new Date(task.deadline).toLocaleDateString();
+                const currentDate = new Date();
+                const deadlineDateTime = new Date(task.deadline); // Deadline as a Date object
+
+                taskElement.innerHTML = `
+                    <p><strong>Task:</strong> ${task.text}</p>
+                    <p class="published-on"><small><strong>Published On:</strong> ${formattedDate}</small></p>
+                    <p class="published-on"><small><strong>Deadline:</strong> ${deadlineDate}</small></p>
+                `;
+
+                const taskId = task.id;
+
+                // Check if homework has been submitted and if so, check its status
+                let homeworkStatus = undefined;
+                if (submittedHomework[email] && submittedHomework[email][taskId]) {
+                    homeworkStatus = submittedHomework[email][taskId].status;
+                }
+
+                const submitButton = document.createElement('button');
+
+                if (currentDate > deadlineDateTime) {
+                    submitButton.textContent = 'Deadline Passed';
+                    submitButton.disabled = true; // Disable button as the deadline has passed
+                    submitButton.classList.add('rejected-button');
+                } else if (homeworkStatus === 'accepted') {
+                    submitButton.textContent = 'Completed';
+                    submitButton.disabled = true; // Already completed
+                    submitButton.classList.add('accepted-button');
+                } else if (homeworkStatus === 'rejected') {
+                    submitButton.textContent = 'Rejected';
+                    submitButton.classList.add('rejected-button');
+                    submitButton.onclick = function() {
+                        window.location.href = `submitwork.html?task=${taskId}`; // Use taskId
+                    };
+                } else if (homeworkStatus === 'submitted') {
+                    submitButton.textContent = 'Pending Review';
+                    submitButton.disabled = true; // Submitted but not yet reviewed
+                    submitButton.classList.add('pending-button');
+                } else {
+                    submitButton.textContent = 'Submit Homework';
+                    submitButton.classList.add('submit-button');
+                    submitButton.onclick = function() {
+                        window.location.href = `submitwork.html?task=${taskId}`; // Use taskId
+                    };
+                }
+
+                taskElement.appendChild(submitButton);
+                tasksContainer.appendChild(taskElement);
+            });
+        }
+
+        // Logout button logic
+        document.getElementById('logoutButton').addEventListener('click', function() {
+            localStorage.removeItem('currentUser'); // Clear the current user from localStorage
+            alert('You have been logged out.');
+            window.location.href = 'login.html'; // Redirect to the login page
+        });
+
+        // Dark mode toggle logic
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const body = document.body;
+
+        // Check for saved dark mode preference in localStorage
+        if (localStorage.getItem('darkMode') === 'enabled') {
+            body.classList.add('dark-mode');
+        }
+
+        // Toggle dark mode
+        darkModeToggle.addEventListener('click', () => {
+            body.classList.toggle('dark-mode');
+            if (body.classList.contains('dark-mode')) {
+                localStorage.setItem('darkMode', 'enabled');
+            } else {
+                localStorage.removeItem('darkMode');
+            }
+        });
+
+        // Load notifications when page is loaded
+        window.onload = function() {
+            updateNotifications();
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h2>Dashboard</h2>
+        <p id="userInfo"></p>
+        <button class="general-button" id="logoutButton">Log Out</button>
+        <span id="viewTasks"> <a href="tasks.html">View Tasks</a></span>
+        <span id="viewDiscussions"> | <a href="discussions.html">View Discussions</a></span>
+        <span id="viewSubmissions" style="display: none;"> | <a href="viewsubmits.html">View Submissions</a></span>
+    </div>
+
+    <div id="darkModeToggle">Toggle Dark Mode</div>
+    <script src="script.js"></script>
+    <script>
+        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+        if (currentUser) {
+            document.getElementById('userInfo').textContent = `Logged in as: ${currentUser.email}`;
+            if (currentUser.role === 'teacher') {
+                document.getElementById('viewSubmissions').style.display = 'inline';
+            }
+        } else {
+            window.location.href = 'login.html';
+        }
+
+        document.getElementById('logoutButton').addEventListener('click', function() {
+            localStorage.removeItem('currentUser');
+            alert('You have been logged out.');
+            window.location.href = 'login.html';
+        });
+
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const body = document.body;
+
+        if (localStorage.getItem('darkMode') === 'enabled') {
+            body.classList.add('dark-mode');
+        }
+
+        darkModeToggle.addEventListener('click', () => {
+            body.classList.toggle('dark-mode');
+            if (body.classList.contains('dark-mode')) {
+                localStorage.setItem('darkMode', 'enabled');
+            } else {
+                localStorage.removeItem('darkMode');
+            }
+        });
+
+        window.onload = function() {
+            updateNotifications();
+        };
+    </script>
+</body>
+</html>
